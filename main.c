@@ -81,7 +81,8 @@ int count_chars()
         if (ch != '\n')
             characters++;
     }
-
+    
+    fclose(pt);
     return characters;
 }
 
@@ -125,23 +126,34 @@ tree_t *n_leaves_and_size(const unsigned int n_chars)
 void get_bases(int n_leaves, int size_leaf, char leaves_arr[n_leaves][size_leaf]) 
 {
     char ch;
-    int counter = 0;
+    int char_counter = 0;
     FILE *fp = fopen(FILENAME, "r");
-    if (fp == NULL) {perror("file ptr is NULL"); exit(1);}
+    if (fp == NULL) {
+        perror("file ptr is NULL"); 
+        exit(1);
+    }
+
+    for (int i = 0; i < n_leaves; i++) {
+        memset(leaves_arr[i], 0, size_leaf);
+    }
 
     while((ch = fgetc(fp)) != EOF) {
-        if (ch != '\n')
-            leaves_arr[counter / size_leaf][counter % size_leaf] = ch;
-        
-        counter++;
+        if (ch != '\n' && char_counter < n_leaves * size_leaf) {
+            leaves_arr[char_counter / size_leaf][char_counter % size_leaf] = ch;
+            char_counter++;
+        }
     }
+    
+    fclose(fp);
 }
 
 
 void print_merkle(node_t *root[], int n_layers, int n_leaves)
 {
+    const int hash_display_len = 5;
+    
     const int n_chpernode = 8;
-    const char separator[3] = {' ', '|', ' '};
+    const char separator[10] = {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
     int base = 2;
     int curr_layer = 0;
     node_t *prev_node_layer[ n_leaves ];
@@ -150,18 +162,21 @@ void print_merkle(node_t *root[], int n_layers, int n_leaves)
     
     char *root_hash = root[0]->hash;
     root_hash[5] = '\0';
-    printf("                    %s                     \n", root_hash);
-    
+    for (int i = 0; i < n_leaves * (hash_display_len + strlen(separator)) / 2; i++) {
+        printf(" ");
+    }
+    printf("%s", root_hash);
+    for (int i = 0; i < n_leaves * (hash_display_len + strlen(separator)) / 2; i++) {
+        printf(" ");
+    }
+    printf("\n");
+
     while (curr_layer != n_layers - 1) {
         int n_nodes = pow(base, curr_layer); // num nodes on the curr layer
         int n_spaces = n_leaves - n_nodes;
         
-        if (n_spaces > 2){
-            for (int i = 0; i < n_spaces / 2 - 1; i++) {
-                for (int j = 0; j < 8; j++) {
-                    printf(" ");
-                }
-            }
+        for (int i = 0; i < n_spaces * (hash_display_len + strlen(separator)) / 2; i++) {
+                printf(" ");
         }
         
         for (int i = 0; i < n_nodes; i++) {
@@ -181,14 +196,11 @@ void print_merkle(node_t *root[], int n_layers, int n_leaves)
             free(prev_node_layer[i]);
         }
         
-        if (n_spaces > 2){
-            for (int i = 0; i < n_spaces / 2 - 1; i++) {
-                for (int j = 0; j < 8; j++) {
-                    printf(" ");
-                }
-            }
+        for (int i = 0; i < n_spaces * (hash_display_len + strlen(separator)) / 2; i++) {
+                printf(" ");
         }
         printf("\n");
+        
         for (int i = 0; i < n_leaves; i++) {
             prev_node_layer[i] = curr_node_layer[i];
         }
@@ -196,6 +208,17 @@ void print_merkle(node_t *root[], int n_layers, int n_leaves)
     }
 }
 
+
+void print_leaves(int size_leaf, int n_leaves, char leaves_arr[n_leaves][size_leaf])
+{
+    for (int i = 0; i < n_leaves; i++) {
+        printf("Leaf %d: ", i+1);
+        for (int j = 0; j < size_leaf; j++) {
+            printf("%c", leaves_arr[i][j]);
+        }
+        printf("\n");
+    }
+}
 
 int main()
 {
@@ -219,7 +242,7 @@ int main()
     int n_groups = n_leaves; 
     
     node_t *last_layer[n_leaves];
-    last_layer[0] = NULL;
+    memset(last_layer, 0, sizeof(last_layer));
 
     for (int i = 0; i < n_layers; i++) { 
         node_t *curr_layer[n_groups];
@@ -227,36 +250,55 @@ int main()
             curr_layer[j] = (node_t*) malloc(sizeof(node_t));
             node_t *leaf_ptr = curr_layer[j];
             
-            if (last_layer[0] != NULL) {
-                leaf_ptr->left  = last_layer[j*2];
-                leaf_ptr->right = last_layer[j*2 + 1];
-                
-                char new_hash1[256];
-                char new_hash2[128];
-                
-                const char *hash_ptr1  = leaf_ptr->left->hash;
-                const char *hash_ptr2 = leaf_ptr->right->hash;
-                
-                strcpy(new_hash1, hash_ptr1);
-                strcpy(new_hash2, hash_ptr2); 
-                
-                strcat(new_hash1, new_hash2);
-                
-                leaf_ptr->hash = sha256(new_hash1);
-                char *leaf_hash = leaf_ptr->hash;
-            } else {
+            if (i == 0) {
                 leaf_ptr->left  = NULL;
                 leaf_ptr->right = NULL;
-                leaf_ptr->hash  = sha256((char*)leaves_arr[j]);
-                char* hashprint = leaf_ptr->hash;
+                
+                if (j < n_leaves) {
+                    char leaf_data[size_leaf + 1];
+                    memcpy(leaf_data, leaves_arr[j], size_leaf);
+                    leaf_data[size_leaf] = '\0';
+                    
+                    leaf_ptr->hash  = sha256(leaf_data);
+                    char* hashprint = leaf_ptr->hash;
+                } else {
+                    leaf_ptr->hash = NULL;
+                    printf("Layer %d: Invalid leaf index %d\n", i, j);
+                }
+            } else {
+                if (j*2+1 < n_groups*2) {
+                    leaf_ptr->left  = last_layer[j*2];
+                    leaf_ptr->right = last_layer[j*2 + 1];
+                    
+                    if (leaf_ptr->left && leaf_ptr->right && 
+                        leaf_ptr->left->hash && leaf_ptr->right->hash) {
+                        
+                        char new_hash[129]; 
+
+                        strncpy(new_hash, leaf_ptr->left->hash, 64);
+                        new_hash[64] = '\0'; 
+                        strncat(new_hash, leaf_ptr->right->hash, 64);
+
+                        leaf_ptr->hash = sha256(new_hash); 
+                        char *hashprint = leaf_ptr->hash;
+                    } else {
+                        printf("Layer %d: Invalid child nodes for index %d\n", i, j);
+                        leaf_ptr->hash = NULL;
+                    }
+                } else {
+                    printf("Layer %d: Invalid child index for %d\n", i, j);
+                    leaf_ptr->hash = NULL;
+                }
             }
         }
-        for (int j = 0; j < n_groups; j++) {
-                last_layer[j] = curr_layer[j];
+        
+        for (int j = 0; j < n_groups && j < n_leaves; j++) {
+            last_layer[j] = curr_layer[j];
         }
         
         n_groups >>= 1;  
     }
     print_merkle(last_layer, n_layers, n_leaves);
+    print_leaves(size_leaf, n_leaves, leaves_arr);
     return 0;
 }
