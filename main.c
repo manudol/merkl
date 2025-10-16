@@ -5,19 +5,6 @@
 #include <openssl/evp.h>
 #include <stdbool.h>
 
-/** TODO:
-* 1. find the right number of bases per leaves to both:
-*   a) not go over the MBPL
-*   b) get a base 2 leaf number
-*   e.g.: for a MBPL = 10: 6 bases per leaf and 16 leaves.
-
-
-* To do that:
-* i)   get the num char first ✅
-* ii)  make a small algo to respect both conditions ✅
-* iii) generate the tree ✅
-* iv)  print the tree
-**/
 
 #define MBPL 64 
 #define FILENAME "seq0.txt"
@@ -299,6 +286,6 @@ int main()
         n_groups >>= 1;  
     }
     print_merkle(last_layer, n_layers, n_leaves);
-    print_leaves(size_leaf, n_leaves, leaves_arr);
+    //print_leaves(size_leaf, n_leaves, leaves_arr);
     return 0;
 }
