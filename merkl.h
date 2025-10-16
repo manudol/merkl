@@ -1,19 +1,36 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <math.h>
-#include <openssl/evp.h>
-#include <stdbool.h>
+#ifndef MERKL_H
+#define MERKL_H
 
 
 #define MBPL 64 
 #define FILENAME "seq0.txt"
+
+char *sha256(char str[64]);
+// int count_chars();
+// bool is_square(unsigned int n);
 
 typedef struct node {
     char* hash;
     struct node* left;
     struct node* right;
 } node_t;
+
+typedef struct TreeInfo {
+    int n_leaves;
+    int leaf_size;
+} tree_t;
+
+
+tree_t *n_leaves_and_size();
+void get_bases(int n_leaves, int size_leaf, char leaves_arr[n_leaves][size_leaf]);
+unsigned int get_n_layers(const unsigned int n_leaves);
+void create_tree(const unsigned int n_leaves, const unsigned int size_leaf, char leaves_arr[n_leaves][size_leaf], node_t *last_layer[n_leaves]);
+void print_merkle(node_t *root[], const unsigned int n_leaves);
+void print_leaves(int size_leaf, int n_leaves, char leaves_arr[n_leaves][size_leaf]);
+
+
+#endif
+
 
 
 char *sha256(char str[64])
@@ -51,7 +68,6 @@ char *sha256(char str[64])
     return hash;
 }
 
-
 int count_chars()
 {
     FILE *pt = fopen(FILENAME, "r");
@@ -74,28 +90,25 @@ int count_chars()
 }
 
 
-bool is_square(int n)
+bool is_square(unsigned int n)
 {
-    return (n > 0) && ((n & (n - 1)) == 0); 
+    return (n & (n - 1)) == 0; 
 }
 
 
-typedef struct TreeInfo {
-    int n_leaves;
-    int leaf_size;
-} tree_t;
 
 
-tree_t *n_leaves_and_size(const unsigned int n_chars)
+tree_t *n_leaves_and_size()
 {
+    const unsigned int n_chars = count_chars();
     tree_t *info = (tree_t*) malloc(sizeof(tree_t));
-    int n_leaves = 0;
-    int i = 0;
+    unsigned int n_leaves = 0;
+    unsigned int i = 0;
     for (i = MBPL; i > 0; i--) {
-        if (!(n_chars % i == 0)) {
-            n_leaves = n_chars / i + 1;
-        } else {
+        if (n_chars % i == 0) {
             n_leaves = n_chars / i;
+        } else {
+            n_leaves = n_chars / i + 1; // +1 ceil division
         }
 
         if (is_square(n_leaves)) {
@@ -109,6 +122,8 @@ tree_t *n_leaves_and_size(const unsigned int n_chars)
     info->leaf_size = i;
     return info;
 }
+
+
 
 void get_bases(int n_leaves, int size_leaf, char leaves_arr[n_leaves][size_leaf]) 
 {
@@ -135,8 +150,80 @@ void get_bases(int n_leaves, int size_leaf, char leaves_arr[n_leaves][size_leaf]
 }
 
 
-void print_merkle(node_t *root[], int n_layers, int n_leaves)
+unsigned int get_n_layers(const unsigned int n_leaves)
 {
+    return (unsigned int) (log2(n_leaves) + 1); // + 1 for the root node
+}
+
+
+ 
+void create_tree(const unsigned int n_leaves, const unsigned int size_leaf, char leaves_arr[n_leaves][size_leaf], node_t *last_layer[n_leaves])
+{
+    const unsigned int n_layers = get_n_layers(n_leaves);
+    
+    int n_groups = n_leaves;
+
+    for (int i = 0; i < n_layers; i++) { 
+        node_t *curr_layer[n_groups];
+        for (int j = 0; j < n_groups; j++) {
+            curr_layer[j] = (node_t*) malloc(sizeof(node_t));
+            node_t *leaf_ptr = curr_layer[j];
+            
+            if (i == 0) {
+                leaf_ptr->left  = NULL;
+                leaf_ptr->right = NULL;
+                
+                if (j < n_leaves) {
+                    char leaf_data[size_leaf + 1];
+                    memcpy(leaf_data, leaves_arr[j], size_leaf);
+                    leaf_data[size_leaf] = '\0';
+                    
+                    leaf_ptr->hash  = sha256(leaf_data);
+                    char* hashprint = leaf_ptr->hash;
+                } else {
+                    leaf_ptr->hash = NULL;
+                    printf("Layer %d: Invalid leaf index %d\n", i, j);
+                }
+            } else {
+                if (j*2+1 < n_groups*2) {
+                    leaf_ptr->left  = last_layer[j*2];
+                    leaf_ptr->right = last_layer[j*2 + 1];
+                    
+                    if (leaf_ptr->left && leaf_ptr->right && 
+                        leaf_ptr->left->hash && leaf_ptr->right->hash) {
+                        
+                        char new_hash[129]; 
+
+                        strncpy(new_hash, leaf_ptr->left->hash, 64);
+                        new_hash[64] = '\0'; 
+                        strncat(new_hash, leaf_ptr->right->hash, 64);
+
+                        leaf_ptr->hash = sha256(new_hash); 
+                        char *hashprint = leaf_ptr->hash;
+                    } else {
+                        printf("Layer %d: Invalid child nodes for index %d\n", i, j);
+                        leaf_ptr->hash = NULL;
+                    }
+                } else {
+                    printf("Layer %d: Invalid child index for %d\n", i, j);
+                    leaf_ptr->hash = NULL;
+                }
+            }
+        }
+        
+        for (int j = 0; j < n_groups && j < n_leaves; j++) {
+            last_layer[j] = curr_layer[j];
+        }
+        
+        n_groups >>= 1;  
+    }
+}
+
+
+
+void print_merkle(node_t *root[], const unsigned int n_leaves)
+{
+    const unsigned int n_layers = get_n_layers(n_leaves);
     const int hash_display_len = 5;
     
     const int n_chpernode = 8;
@@ -205,87 +292,4 @@ void print_leaves(int size_leaf, int n_leaves, char leaves_arr[n_leaves][size_le
         }
         printf("\n");
     }
-}
-
-int main()
-{
-    const unsigned int n_chars = count_chars();
-
-    tree_t *tree_info = n_leaves_and_size(n_chars);
-    const unsigned int n_leaves  = (const unsigned int) tree_info->n_leaves;
-    const unsigned int size_leaf = (const unsigned int) tree_info->leaf_size;
-
-    free(tree_info);
-
-    printf("n_leaves: %i\n", n_leaves);
-    printf("size_leaf: %i\n", size_leaf);
-
-    char leaves_arr[n_leaves][size_leaf];
-    get_bases(n_leaves, size_leaf, leaves_arr);
-
-    const unsigned int n_layers = (const unsigned int) (log2(n_leaves) + 1); // + 1 for the root node
-    printf("n_layers: %d\n", n_layers);
-
-    int n_groups = n_leaves; 
-    
-    node_t *last_layer[n_leaves];
-    memset(last_layer, 0, sizeof(last_layer));
-
-    for (int i = 0; i < n_layers; i++) { 
-        node_t *curr_layer[n_groups];
-        for (int j = 0; j < n_groups; j++) {
-            curr_layer[j] = (node_t*) malloc(sizeof(node_t));
-            node_t *leaf_ptr = curr_layer[j];
-            
-            if (i == 0) {
-                leaf_ptr->left  = NULL;
-                leaf_ptr->right = NULL;
-                
-                if (j < n_leaves) {
-                    char leaf_data[size_leaf + 1];
-                    memcpy(leaf_data, leaves_arr[j], size_leaf);
-                    leaf_data[size_leaf] = '\0';
-                    
-                    leaf_ptr->hash  = sha256(leaf_data);
-                    char* hashprint = leaf_ptr->hash;
-                } else {
-                    leaf_ptr->hash = NULL;
-                    printf("Layer %d: Invalid leaf index %d\n", i, j);
-                }
-            } else {
-                if (j*2+1 < n_groups*2) {
-                    leaf_ptr->left  = last_layer[j*2];
-                    leaf_ptr->right = last_layer[j*2 + 1];
-                    
-                    if (leaf_ptr->left && leaf_ptr->right && 
-                        leaf_ptr->left->hash && leaf_ptr->right->hash) {
-                        
-                        char new_hash[129]; 
-
-                        strncpy(new_hash, leaf_ptr->left->hash, 64);
-                        new_hash[64] = '\0'; 
-                        strncat(new_hash, leaf_ptr->right->hash, 64);
-
-                        leaf_ptr->hash = sha256(new_hash); 
-                        char *hashprint = leaf_ptr->hash;
-                    } else {
-                        printf("Layer %d: Invalid child nodes for index %d\n", i, j);
-                        leaf_ptr->hash = NULL;
-                    }
-                } else {
-                    printf("Layer %d: Invalid child index for %d\n", i, j);
-                    leaf_ptr->hash = NULL;
-                }
-            }
-        }
-        
-        for (int j = 0; j < n_groups && j < n_leaves; j++) {
-            last_layer[j] = curr_layer[j];
-        }
-        
-        n_groups >>= 1;  
-    }
-    print_merkle(last_layer, n_layers, n_leaves);
-    //print_leaves(size_leaf, n_leaves, leaves_arr);
-    return 0;
 }

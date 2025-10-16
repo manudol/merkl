@@ -1,2 +1,2 @@
 merkle:
-	cc -o outmerkle main.c -lssl -lcrypto 
+	cc -o outmerkle merkl.c -lssl -lcrypto 
