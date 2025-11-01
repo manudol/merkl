@@ -25,10 +25,10 @@ node_t* init_tree(node_t* new_leaf);
 void free_tree(node_t* node);
 
 bool has_rnn(node_t* head);
-bool has_rnl(node_t* head)
+bool has_rnl(node_t* head);
 
-node_t* find_rnl(node_t* head)
-node_t* find_rnn(node_t* head)
+node_t* find_rnl(node_t* head, int* path, int index);
+node_t* find_rnn(node_t* head, int* path, int index);
 
 void right_update_hash(node_t* head);
 // void left_hash_update(node_t* head, node_t* new_leaf);
@@ -98,8 +98,8 @@ node_t* init_tree(node_t* new_leaf)
     head->seq     = NULL;
     head->level   = 1;
     head->is_leaf = false;
-    leaf->rnn     = 0;
-    leaf->rnl     = 1;
+    head->rnn     = 0;
+    head->rnl     = 1;
     head->hash    = hash;
     head->left    = new_leaf;
     head->right   = NULL;
@@ -138,13 +138,14 @@ node_t* find_rnl(node_t* head, int* path, int index)
     } else if (curr->left->rnl > 0) {
         path[index] = 0;
         find_rnl(curr->left, path, index+1);
-    } else if (curr->right-rnl > 0) {
+    } else if (curr->right->rnl > 0) {
         path[index] = 1;
         find_rnl(curr->right, path, index+1);
-    }
+    } 
+    return NULL;
 }
 
-node_t* find_rnn(node_t* head)
+node_t* find_rnn(node_t* head, int* path, int index)
 {
     node_t* curr = head;
     if (!has_rnn(curr)) {
@@ -155,10 +156,11 @@ node_t* find_rnn(node_t* head)
     if (curr->level > 1 && curr->right == NULL) {
         return curr;
     } else if (curr->left->rnn > 0) {
-        find_rnn(curr->left);
-    } else if (curr->right-rnn > 0) {
-        find_rnn(curr->right);
+        find_rnn(curr->left, path, index + 1);
+    } else if (curr->right->rnn > 0) {
+        find_rnn(curr->right, path, index + 1);
     }
+    return NULL;
 }
 
 char* concat_hash(char* hash1, char* hash2)
