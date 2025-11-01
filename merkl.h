@@ -21,7 +21,7 @@ char* sha256(unsigned char const* dna_chunk);
 node_t* new_leaf(char* id, char* dna_chunk);
 node_t* init_tree(node_t* new_leaf);
 void free_tree(node_t* node);
-bool right_add_to_tree(node_t* head, node_t* new_leaf);
+bool has_rnn(node_t* head, node_t* new_leaf);
 void right_update_hash(node_t* head);
 // void left_hash_update(node_t* head, node_t* new_leaf);
 int num_layers(node_t* head);
@@ -99,21 +99,58 @@ node_t* init_tree(node_t* new_leaf)
     return head;
 }
 
-// crawl the tree better
-bool right_add_to_tree(node_t* head, node_t* new_leaf)
+bool has_rnl(node_t* head)
 {
     node_t* curr = head;
-    if (curr->right == NULL && !curr->is_leaf) {
-        curr->right = new_leaf;
-        return true;
-    } else if (curr->right != NULL && !curr->is_leaf) {
-        right_add_to_tree(curr->right, new_leaf);
-    } else if (curr->right == NULL && curr->is_leaf) {
-        return false;
+    if (head->rnl > 0) {
+        return true; 
     }
     return false;
 }
 
+
+bool has_rnn(node_t* head)
+{
+    node_t* curr = head;
+    if (head->rnn > 0) {
+        return true; 
+    }
+    return false;
+}
+
+node_t* find_rnl(node_t* head)
+{
+    node_t* curr = head;
+    if (!has_rnl(curr)) {
+        perror("cannot call find_rnl since there are no Right Null leaves\n");
+        exit(1);
+    }
+
+    if (curr->level == 1 && curr->right == NULL) {
+        return curr;
+    } else if (curr->left->rnl > 0) {
+        find_rnl(curr->left)
+    } else if (curr->right-rnl > 0) {
+        find_rnl(curr->right)
+    }
+}
+
+node_t* find_rnn(node_t* head)
+{
+    node_t* curr = head;
+    if (!has_rnn(curr)) {
+        perror("cannot call find_rnl since there are no Right Null leaves\n");
+        exit(1);
+    }
+
+    if (curr->level > 1 && curr->right == NULL) {
+        return curr;
+    } else if (curr->left->rnn > 0) {
+        find_rnn(curr->left)
+    } else if (curr->right-rnn > 0) {
+        find_rnn(curr->right)
+    }
+}
 
 char* concat_hash(char* hash1, char* hash2)
 {
