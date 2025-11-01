@@ -8,29 +8,26 @@
 #include "merkl.h"
 
 
-
 int main()
 {
-    tree_t *tree_info = n_leaves_and_size();
-    const unsigned int n_leaves  = (const unsigned int) tree_info->n_leaves;
-    const unsigned int size_leaf = (const unsigned int) tree_info->leaf_size;
+    char* id = "id2874234776";
+    char* chunk =  "AGCGAGCTAGCATCAGTCAGGATCGATC";
+    node_t* leaf = new_leaf(id, chunk);
+    printf("leaf = %p\n", leaf);
+    printf("leaf hash = %s\n", leaf->hash);
+    node_t* head = init_tree(leaf);
+    printf("head = %p\n", head);
+    printf("head hash = %s\n", head->hash);
 
-    free(tree_info);
+    char* id1 = "id2874234777";
+    char* chunk1 =  "AGCGAGCTAGCATCAGTCAGGATCGATC";
+    node_t* leaf1 = new_leaf(id1, chunk1);
+    if (right_add_to_tree(head, leaf1)) {
+        node_t* right = head->right;
+        printf("right to head = %p\n", right);
+        printf("right to head = %s\n", right->hash);
+    } 
 
-    printf("n_leaves: %i\n", n_leaves);
-    printf("size_leaf: %i\n", size_leaf);
-
-    char leaves_arr[n_leaves][size_leaf];
-    get_bases(n_leaves, size_leaf, leaves_arr);
-
-    const unsigned int n_layers = get_n_layers(n_leaves);
-    printf("n_layers: %d\n", n_layers);
-  
-    node_t *last_layer[n_leaves];
-    memset(last_layer, 0, sizeof(last_layer));
-    
-    create_tree(n_leaves, size_leaf, leaves_arr, last_layer);
-    print_merkle(last_layer, n_leaves);
-    //print_leaves(size_leaf, n_leaves, leaves_arr);
+    free_tree(head);
     return 0;
 }
