@@ -8,8 +8,11 @@ int count_chars();
 typedef struct node {
     char* id;
     char* seq;
-    char* hash;
     bool is_leaf;
+    int rnn; // Right Null Nodes 
+    int rnl; // Right Null Leaves
+    int level; // leaf level == 0
+    char* hash;
     struct node* left;
     struct node* right;
 } node_t;
@@ -70,8 +73,11 @@ node_t* new_leaf(char*id, char* dna_chunk)
     node_t* leaf  = (node_t*) malloc(sizeof(node_t));
     leaf->id      = id;
     leaf->seq     = dna_chunk;
-    leaf->hash    = hash;
+    leaf->level   = 0;
     leaf->is_leaf = true;
+    leaf->rnn     = 0;
+    leaf->rnl     = 0;
+    leaf->hash    = hash;
     leaf->left    = NULL;
     leaf->right   = NULL;
     return leaf;
@@ -83,14 +89,17 @@ node_t* init_tree(node_t* new_leaf)
     node_t* head = (node_t*) malloc(sizeof(node_t));
     head->id      = NULL;
     head->seq     = NULL;
-    head->hash    = hash;
+    head->level   = 1;
     head->is_leaf = false;
+    leaf->rnn     = 0;
+    leaf->rnl     = 1;
+    head->hash    = hash;
     head->left    = new_leaf;
     head->right   = NULL;
     return head;
 }
 
-
+// crawl the tree better
 bool right_add_to_tree(node_t* head, node_t* new_leaf)
 {
     node_t* curr = head;
@@ -165,6 +174,46 @@ int num_layers(node_t* head)
     return layers;
 }
 
+
+node_t* nr_left_update(int n_layers, node_t* new_leaf)
+{
+    int i_layer  = n_layers;
+    node_t* curr = new_leaf;
+    while (i_layer > 0) {
+        node_t* node = (node_t*) malloc(sizeof(node_t));
+        node->id      = NULL;
+        node->seq     = NULL;
+        node->is_leaf = false;
+        node->level   = n_layers + 1 - i_layer;
+        node->hash    = sha256((const unsigned char*) curr->hash);
+        node->left    = new_leaf;
+        node->right   = NULL;
+
+        curr = node;
+        i_layer--;
+    }
+    return curr;
+}
+
+
+node_t* new_branch_update_hash(node_t* head, node_t* new_leaf)
+{
+    int n_layers = num_layers(head);
+    
+    node_t* right_head = nr_left_update(n_layers, new_leaf);
+    node_t* left_head  = head;
+
+    node_t* new_head  = (node_t*) malloc(sizeof(node_t));
+    new_head->id      = NULL;
+    new_head->seq     = NULL;
+    new_head->is_leaf = false;
+    new_head->level   = n_layers + 1;
+    new_head->hash    = sha256((const unsigned char*) concat_hash(left_head->hash, right_head->hash));
+    new_head->left    = left_head;
+    new_head->right   = right_head;
+
+    return new_head;
+}
 
 void free_tree(node_t* node)
 {
