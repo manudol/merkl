@@ -1,8 +1,6 @@
 #ifndef MERKL_H
 #define MERKL_H
 
-
-#define MBPL 64 
 #define FILENAME "seq0.txt"
 
 int count_chars();
@@ -21,7 +19,9 @@ node_t* new_leaf(char* id, char* dna_chunk);
 node_t* init_tree(node_t* new_leaf);
 void free_tree(node_t* node);
 bool right_add_to_tree(node_t* head, node_t* new_leaf);
-
+void right_update_hash(node_t* head);
+// void left_hash_update(node_t* head, node_t* new_leaf);
+int num_layers(node_t* head);
 void get_bases(int n_leaves, int size_leaf, char leaves_arr[n_leaves][size_leaf]);
 unsigned int get_n_layers(const unsigned int n_leaves);
 
@@ -106,16 +106,64 @@ bool right_add_to_tree(node_t* head, node_t* new_leaf)
 }
 
 
-void update_hash(node_t* head)
+char* concat_hash(char* hash1, char* hash2)
 {
+    size_t len1     = strlen(hash1);
+    size_t len2     = strlen(hash2);
+    size_t totallen = len1 + len1 + 1;
+
+    char* new_hash = (char*) malloc(totallen);
+    strcpy(new_hash, hash1);
+    strcpy(new_hash, hash2);
+    return new_hash;
+}
+
+void r_right_update(node_t* head, node_t* node)
+{
+    char* hash1 = node->left->hash; // leaf hash left
+    char* hash2 = node->right->hash; // leaf hash right
     
+    char* new_hash = concat_hash(hash1, hash2);
+    free(node->hash);
+    node->hash = new_hash;
+
+    if (node == head) {
+        return;
+    }
+
+    node_t* curr = head;
+    node_t* prev;
+    while (curr != node) {
+        prev = curr;
+        curr = curr->right;
+    }
+    r_right_update(head, prev);
 }
 
 
-// node_t* add_leaf(char* id, char* dna_chunk)
-// {
-//     node_t* leaf = new_leaf(id, dna_chunk);
-// }
+void right_update_hash(node_t* head)
+{
+    node_t* curr = head;
+    node_t* prev;
+    while (!curr->is_leaf) {
+        prev = curr;
+        curr = curr->right;
+    }
+    r_right_update(head, prev);
+}
+
+
+
+int num_layers(node_t* head)
+{
+    int layers = 0;
+    node_t* curr = head;
+    while (!curr->is_leaf) {
+        curr = curr->left;
+        layers++;
+    }
+    return layers;
+}
 
 
 void free_tree(node_t* node)

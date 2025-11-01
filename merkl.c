@@ -13,8 +13,8 @@ int main()
     char* id = "id2874234776";
     char* chunk =  "AGCGAGCTAGCATCAGTCAGGATCGATC";
     node_t* leaf = new_leaf(id, chunk);
-    printf("leaf = %p\n", leaf);
-    printf("leaf hash = %s\n", leaf->hash);
+    printf("left leaf = %p\n", leaf);
+    printf("left leaf hash = %s\n", leaf->hash);
     node_t* head = init_tree(leaf);
     printf("head = %p\n", head);
     printf("head hash = %s\n", head->hash);
@@ -24,10 +24,19 @@ int main()
     node_t* leaf1 = new_leaf(id1, chunk1);
     if (right_add_to_tree(head, leaf1)) {
         node_t* right = head->right;
-        printf("right to head = %p\n", right);
-        printf("right to head = %s\n", right->hash);
-    } 
+        printf("right leaf= %p\n", right);
+        printf("right leaf hash = %s\n", right->hash);
 
+        right_update_hash(head);
+    } 
+ 
+    printf("head = %p\n", head);
+    printf("head hash = %s\n", head->hash);
+
+    int layers = num_layers(head);
+
+    printf("num layers = %d\n", layers);
+  
     free_tree(head);
     return 0;
 }
