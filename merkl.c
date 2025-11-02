@@ -28,7 +28,7 @@ int main()
     char* chunk4 =  "UUUAAAACACACCCUUUUUUUCTAGCATCAGTCAGGATCGATC";
 
     char* id5 = "id2874234377";
-    char* chunk4 =  "UUUAAAACACACCCUUUUUUUCTAGCATCAGTCAGGATCGATC";
+    char* chunk5 =  "UUUAAAACACACCCUUUUUUUCTAGCATCAGTCAGGATCGATC";
     printf("\n======= tree 1 =======\n");
     printf("head hash = %s\n", head->hash);
     printf("left hash = %s\n", head->left->hash);
@@ -90,6 +90,23 @@ int main()
     printf("\nRNL = %d\n", head->rnl);
     printf("\nRNN = %d\n", head->rnn);
 
+    node_t* leaf5 = new_leaf(id5, chunk5);
+    head = add_leaf(head, leaf5);
+  
+    printf("\n======= tree 6  =======\n");
+    printf("head hash = %s\n", head->hash);
+    printf("left head hash = %s\n", head->left->hash);
+    printf("right head hash = %s\n", head->right->hash);
+    printf("left head left hash = %s\n", head->left->left->hash);
+    printf("left head left right leaf hash = %s\n", head->left->left->right->hash);
+    printf("left head left left leaf hash = %s\n", head->left->left->left->hash);
+    printf("left head right hash = %s\n", head->left->right->hash);
+    // printf("right head right hash = %s\n", head->right->right->hash);
+    printf("right head left hash = %s\n", head->right->left->hash);
+    printf("right head left left leaf hash = %s\n", head->right->left->left->hash);
+    printf("right head left left leaf hash = %s\n", head->right->left->right->hash);
+    printf("\nRNL = %d\n", head->rnl);
+    printf("\nRNN = %d\n", head->rnn);
     free_tree(head);
     return 0;
 }

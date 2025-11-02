@@ -149,6 +149,7 @@ void find_rnl(node_t* head, int* path, int index, node_t** node_rnl)
     }
 
     if (curr->level == 1 && curr->right == NULL) {
+        path[index] = 1;
         *node_rnl = curr;
     } else if (curr->left->rnl > 0) {
         path[index] = 0;
@@ -193,7 +194,12 @@ char* concat_hash(char* hash1, char* hash2)
 
 void newhash(node_t* node)
 {
-    char* new_hash = concat_hash(node->left->hash, node->right->hash); 
+    char* new_hash;
+    if (node->right == NULL) {
+        new_hash = sha256((const unsigned char*) node->left->hash);
+    } else {
+        new_hash = sha256((const unsigned char*) concat_hash(node->left->hash, node->right->hash));
+    }
     free(node->hash);
     node->hash = new_hash;
 
@@ -202,10 +208,11 @@ void newhash(node_t* node)
 void rnl_rehash(node_t* head, node_t* node_rnl, int* path)
 {
     node_t* curr = head;
-    node_t* prev = head;
     node_t* stop = node_rnl;
 
-    int i = 0; 
+    node_t* prev;
+
+    int i = 0;
 
     curr->rnl = 0;
 
@@ -220,8 +227,8 @@ void rnl_rehash(node_t* head, node_t* node_rnl, int* path)
         i++;
     }
 
-    newhash(prev);
-    if (prev != head) {
+    newhash(curr);
+    if (curr != head) {
         rnl_rehash(head, prev, path);
     }
 }
@@ -303,9 +310,12 @@ node_t* add_leaf(node_t* head, node_t* new_leaf) // returns the head
     node_t* h = head;
     int* path = (int *) malloc(head->level * sizeof(int));
     if (has_rnl(head)) {
+        printf("yes\n");
         node_t* node_rnl;
         find_rnl(head, path, 0, &node_rnl); 
+        printf("node rnl ptr = %p\n", node_rnl);
         node_rnl->right  = new_leaf;
+        printf("node rnl leaf hash= %s\n", node_rnl->right->hash);
         rnl_rehash(head, node_rnl, path);
     } else if (has_rnn(head)) {
         // node_t* node_rnn = find_rnn(head, path, 0); 
