@@ -30,8 +30,8 @@ bool has_rnl(node_t* head);
 node_t* find_rnl(node_t* head, int* path, int index);
 node_t* find_rnn(node_t* head, int* path, int index);
 
-void right_update_hash(node_t* head);
-// void left_hash_update(node_t* head, node_t* new_leaf);
+void rehash(node_t* head, node_t* node_rnl, int* path)
+
 int num_layers(node_t* head);
 void get_bases(int n_leaves, int size_leaf, char leaves_arr[n_leaves][size_leaf]);
 
@@ -175,53 +175,41 @@ char* concat_hash(char* hash1, char* hash2)
     return new_hash;
 }
 
-void add_leaf(node_t* head, node_t* new_leaf)
-{
-    int* path = (int *) malloc(head->level * sizeof(int));
-    if (has_rnl(head)) {
-        node_t* node_rnl = find_rnl(head, path, 0); 
-        node_rnl->right  = new_leaf;
-        // rehash(path);
-    } else if (has_rnn(head)) {
-        node_t* node_rnl = find_rnn(head, path, 0); 
-        // rnl_add(head, node_rnl->level, path, 0);
-    } else {
-        // new_branch(new_leaf);
-    }
-}
 
-void r_right_update(node_t* head, node_t* node)
+void newhash(node_t* node)
 {
-    char* hash1 = node->left->hash; // leaf hash left
-    char* hash2 = node->right->hash; // leaf hash right
-    
-    char* new_hash = concat_hash(hash1, hash2);
+    char* new_hash = concat_hash(node->left->hash, node->right->hash); 
     free(node->hash);
     node->hash = new_hash;
 
-    if (node == head) {
-        return;
-    }
-
-    node_t* curr = head;
-    node_t* prev;
-    while (curr != node) {
-        prev = curr;
-        curr = curr->right;
-    }
-    r_right_update(head, prev);
 }
 
-
-void right_update_hash(node_t* head)
+void rnl_rehash(node_t* head, node_t* node_rnl, int* path)
 {
-    node_t* curr = head;
-    node_t* prev;
-    while (!curr->is_leaf) {
-        prev = curr;
-        curr = curr->right;
+    node_t* curr, prev = head;
+    node_t* stop = node_rnl;
+
+    // node_t* prev = head;
+
+    int i = 0; 
+
+    stop->rnl = 0;
+
+    while (curr != stop) {
+        if (path[i] == 0) {
+            prev = curr;
+            curr = curr->left;
+        } else if (path[i] == 1) {
+            prev = curr;
+            curr = curr->right; 
+        }
+        i++;
     }
-    r_right_update(head, prev);
+
+    void newhash(prev);
+    if (prev != head) {
+        void rehash(head, prev, path);
+    }
 }
 
 
@@ -238,45 +226,22 @@ int num_layers(node_t* head)
 }
 
 
-node_t* nr_left_update(int n_layers, node_t* new_leaf)
+void add_leaf(node_t* head, node_t* new_leaf)
 {
-    int i_layer  = n_layers;
-    node_t* curr = new_leaf;
-    while (i_layer > 0) {
-        node_t* node = (node_t*) malloc(sizeof(node_t));
-        node->id      = NULL;
-        node->seq     = NULL;
-        node->is_leaf = false;
-        node->level   = n_layers + 1 - i_layer;
-        node->hash    = sha256((const unsigned char*) curr->hash);
-        node->left    = new_leaf;
-        node->right   = NULL;
-
-        curr = node;
-        i_layer--;
+    int* path = (int *) malloc(head->level * sizeof(int));
+    if (has_rnl(head)) {
+        node_t* node_rnl = find_rnl(head, path, 0); 
+        node_rnl->right  = new_leaf;
+        rnl_rehash(head, node_rnl, path);
+    } else if (has_rnn(head)) {
+        node_t* node_rnn = find_rnn(head, path, 0); 
+        rnn_add_left_leaf(head, new_leaf, path);
+        rnn_rehash(head, node_rnn, path);
+    } else {
+        // new_branch(new_leaf);
     }
-    return curr;
 }
 
-
-node_t* new_branch_update_hash(node_t* head, node_t* new_leaf)
-{
-    int n_layers = num_layers(head);
-    
-    node_t* right_head = nr_left_update(n_layers, new_leaf);
-    node_t* left_head  = head;
-
-    node_t* new_head  = (node_t*) malloc(sizeof(node_t));
-    new_head->id      = NULL;
-    new_head->seq     = NULL;
-    new_head->is_leaf = false;
-    new_head->level   = n_layers + 1;
-    new_head->hash    = sha256((const unsigned char*) concat_hash(left_head->hash, right_head->hash));
-    new_head->left    = left_head;
-    new_head->right   = right_head;
-
-    return new_head;
-}
 
 void free_tree(node_t* node)
 {
