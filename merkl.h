@@ -261,7 +261,9 @@ void new_branch(node_t* right_head, node_t* new_leaf, int depth, int rnn)
         prev->left = curr;
         new_branch(curr, new_leaf, depth - 1, find_branch_rnn(depth - 1));
     }
-    prev->left = new_leaf; 
+    else if (depth == 1) {
+        prev->left = new_leaf; 
+    }
 }
 
 void new_branch_rehash(node_t* right_head, node_t* new_leaf)
