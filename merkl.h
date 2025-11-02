@@ -10,6 +10,7 @@ typedef struct node {
     char* seq;
     bool is_leaf;
     int rnn; // Right Null Nodes 
+    int lrnn_lvl; // lowest rnn level connected
     int rnl; // Right Null Leaves
     int level; // leaf level == 0
     char* hash;
@@ -27,11 +28,11 @@ void free_tree(node_t* node);
 bool has_rnn(node_t* head);
 bool has_rnl(node_t* head);
 
-node_t* find_rnl(node_t* head, int* path, int index);
+void find_rnl(node_t* head, int* path, int index, node_t** node_rnl);
 node_t* find_rnn(node_t* head, int* path, int index);
 
 void rnl_rehash(node_t* head, node_t* node_rnl, int* path);
-void add_leaf(node_t* head, node_t* new_leaf);
+node_t* add_leaf(node_t* head, node_t* new_leaf);
 
 int num_layers(node_t* head);
 void get_bases(int n_leaves, int size_leaf, char leaves_arr[n_leaves][size_leaf]);
@@ -84,11 +85,23 @@ node_t* new_leaf(char*id, char* dna_chunk)
     leaf->level   = 0;
     leaf->is_leaf = true;
     leaf->rnn     = 0;
+    leaf->lrnn_lvl= 0;
     leaf->rnl     = 0;
     leaf->hash    = hash;
     leaf->left    = NULL;
     leaf->right   = NULL;
     return leaf;
+}
+
+
+node_t* fill_node(node_t* node, int depth, int rnl, int rnn, int lrnn_lvl)
+{
+    node->level   = depth;
+    node->is_leaf = false;
+    node->rnn     = rnn;
+    node->lrnn_lvl= lrnn_lvl;
+    node->rnl     = rnl;
+    return node;
 }
 
 node_t* init_tree(node_t* new_leaf)
@@ -100,6 +113,7 @@ node_t* init_tree(node_t* new_leaf)
     head->level   = 1;
     head->is_leaf = false;
     head->rnn     = 0;
+    head->lrnn_lvl= 0;
     head->rnl     = 1;
     head->hash    = hash;
     head->left    = new_leaf;
@@ -126,7 +140,7 @@ bool has_rnn(node_t* head)
     return false;
 }
 
-node_t* find_rnl(node_t* head, int* path, int index)
+void find_rnl(node_t* head, int* path, int index, node_t** node_rnl)
 {
     node_t* curr = head;
     if (!has_rnl(curr)) {
@@ -135,22 +149,21 @@ node_t* find_rnl(node_t* head, int* path, int index)
     }
 
     if (curr->level == 1 && curr->right == NULL) {
-        return curr;
+        *node_rnl = curr;
     } else if (curr->left->rnl > 0) {
         path[index] = 0;
-        find_rnl(curr->left, path, index+1);
+        find_rnl(curr->left, path, index+1, node_rnl);
     } else if (curr->right->rnl > 0) {
         path[index] = 1;
-        find_rnl(curr->right, path, index+1);
+        find_rnl(curr->right, path, index+1, node_rnl);
     } 
-    return NULL;
 }
 
 node_t* find_rnn(node_t* head, int* path, int index)
 {
     node_t* curr = head;
     if (!has_rnn(curr)) {
-        perror("cannot call find_rnl since there are no Right Null leaves\n");
+        perror("cannot call find_rnn since there are no Right Null leaves\n");
         exit(1);
     }
 
@@ -158,6 +171,7 @@ node_t* find_rnn(node_t* head, int* path, int index)
         return curr;
     } else if (curr->left->rnn > 0) {
         find_rnn(curr->left, path, index + 1);
+
     } else if (curr->right->rnn > 0) {
         find_rnn(curr->right, path, index + 1);
     }
@@ -191,11 +205,9 @@ void rnl_rehash(node_t* head, node_t* node_rnl, int* path)
     node_t* prev = head;
     node_t* stop = node_rnl;
 
-    // node_t* prev = head;
-
     int i = 0; 
 
-    stop->rnl = 0;
+    curr->rnl = 0;
 
     while (curr != stop) {
         if (path[i] == 0) {
@@ -228,11 +240,69 @@ int num_layers(node_t* head)
 }
 
 
-void add_leaf(node_t* head, node_t* new_leaf)
+int find_branch_rnn(int head_lvl)
 {
+    if (head_lvl == 1) {
+       return 0;
+    } else if (head_lvl > 1) {
+        return 1;
+    }
+    return 0;
+}
+
+
+void new_branch(node_t* right_head, node_t* new_leaf, int depth, int rnn)
+{
+    node_t* prev = right_head;
+    fill_node(prev, depth, 1, rnn, rnn);
+
+    if (depth > 1) {
+        node_t* curr = (node_t*) malloc(sizeof(node_t));
+        prev->left = curr;
+        new_branch(curr, new_leaf, depth - 1, find_branch_rnn(depth - 1));
+    }
+    prev->left = new_leaf; 
+}
+
+void new_branch_rehash(node_t* right_head, node_t* new_leaf)
+{
+    node_t* prev;
+    node_t* curr = right_head;
+    while (curr != new_leaf) {
+        prev = curr;
+        curr = curr->left;
+    }
+    prev->hash = sha256((const unsigned char *)curr->hash);
+    if (prev != right_head) {
+        new_branch_rehash(right_head, prev);
+    }
+}
+
+
+node_t* new_head(node_t* head, node_t* right_head)
+{
+    node_t* new_h = (node_t*) malloc(sizeof(node_t));
+    new_h->left = head;
+    new_h->right = right_head;
+
+    new_h->level   = head->level + 1;
+    new_h->is_leaf = false;
+    new_h->rnn     = right_head->rnn;
+    new_h->lrnn_lvl= right_head->lrnn_lvl;
+    new_h->rnl     = right_head->rnl;
+    
+    char* head_hash = sha256((const unsigned char*) concat_hash(head->hash, right_head->hash));
+    new_h->hash = head_hash;
+    return new_h;
+}
+
+node_t* add_leaf(node_t* head, node_t* new_leaf) // returns the head
+{
+    node_t* h = head;
     int* path = (int *) malloc(head->level * sizeof(int));
     if (has_rnl(head)) {
-        node_t* node_rnl = find_rnl(head, path, 0); 
+        node_t* node_rnl;
+        find_rnl(head, path, 0, &node_rnl); 
         node_rnl->right  = new_leaf;
         rnl_rehash(head, node_rnl, path);
     } else if (has_rnn(head)) {
@@ -240,8 +310,12 @@ void add_leaf(node_t* head, node_t* new_leaf)
         // rnn_add_left_leaf(head, new_leaf, path);
         // rnn_rehash(head, node_rnn, path);
     } else {
-        // new_branch(new_leaf);
+        node_t* right_head = (node_t*) malloc(sizeof(node_t));
+        new_branch(right_head, new_leaf, head->level, find_branch_rnn(head->level));
+        new_branch_rehash(right_head, new_leaf);
+        h = new_head(head, right_head);
     }
+    return h;
 }
 
 
