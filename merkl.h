@@ -30,7 +30,8 @@ bool has_rnl(node_t* head);
 node_t* find_rnl(node_t* head, int* path, int index);
 node_t* find_rnn(node_t* head, int* path, int index);
 
-void rehash(node_t* head, node_t* node_rnl, int* path)
+void rnl_rehash(node_t* head, node_t* node_rnl, int* path);
+void add_leaf(node_t* head, node_t* new_leaf);
 
 int num_layers(node_t* head);
 void get_bases(int n_leaves, int size_leaf, char leaves_arr[n_leaves][size_leaf]);
@@ -186,7 +187,8 @@ void newhash(node_t* node)
 
 void rnl_rehash(node_t* head, node_t* node_rnl, int* path)
 {
-    node_t* curr, prev = head;
+    node_t* curr = head;
+    node_t* prev = head;
     node_t* stop = node_rnl;
 
     // node_t* prev = head;
@@ -206,9 +208,9 @@ void rnl_rehash(node_t* head, node_t* node_rnl, int* path)
         i++;
     }
 
-    void newhash(prev);
+    newhash(prev);
     if (prev != head) {
-        void rehash(head, prev, path);
+        rnl_rehash(head, prev, path);
     }
 }
 
@@ -234,9 +236,9 @@ void add_leaf(node_t* head, node_t* new_leaf)
         node_rnl->right  = new_leaf;
         rnl_rehash(head, node_rnl, path);
     } else if (has_rnn(head)) {
-        node_t* node_rnn = find_rnn(head, path, 0); 
-        rnn_add_left_leaf(head, new_leaf, path);
-        rnn_rehash(head, node_rnn, path);
+        // node_t* node_rnn = find_rnn(head, path, 0); 
+        // rnn_add_left_leaf(head, new_leaf, path);
+        // rnn_rehash(head, node_rnn, path);
     } else {
         // new_branch(new_leaf);
     }

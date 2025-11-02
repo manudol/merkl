@@ -13,15 +13,22 @@ int main()
     char* id = "id2874234776";
     char* chunk =  "AGCGAGCTAGCATCAGTCAGGATCGATC";
     node_t* leaf = new_leaf(id, chunk);
-    printf("left leaf = %p\n", leaf);
-    printf("left leaf hash = %s\n", leaf->hash);
     node_t* head = init_tree(leaf);
-    printf("head = %p\n", head);
-    printf("head hash = %s\n", head->hash);
 
     char* id1 = "id2874234777";
-    char* chunk1 =  "AGCGAGCTAGCATCAGTCAGGATCGATC";
+    char* chunk1 =  "TACACACACACACCCCCCAGCTAGCATCAGTCAGGATCGATC";
+
+    printf("\n======= before tree =======\n");
+    printf("head hash = %s\n", head->hash);
+    printf("left hash = %s\n", head->left->hash);
+
     node_t* leaf1 = new_leaf(id1, chunk1);
+    add_leaf(head, leaf1);
+
+    printf("\n======= after tree =======\n");
+    printf("head hash = %s\n", head->hash);
+    printf("left hash = %s\n", head->left->hash);
+    printf("right hash = %s\n", head->right->hash);
   
     free_tree(head);
     return 0;
