@@ -29,7 +29,7 @@ bool has_rnn(node_t* head);
 bool has_rnl(node_t* head);
 
 void find_rnl(node_t* head, int* path, int index, node_t** node_rnl);
-node_t* find_rnn(node_t* head, int* path, int index);
+void find_rnn(node_t* head, int* path, int index, node_t** node_rnn);
 
 void rnl_rehash(node_t* head, node_t* node_rnl, int* path);
 node_t* add_leaf(node_t* head, node_t* new_leaf);
@@ -160,7 +160,7 @@ void find_rnl(node_t* head, int* path, int index, node_t** node_rnl)
     } 
 }
 
-node_t* find_rnn(node_t* head, int* path, int index)
+void find_rnn(node_t* head, int* path, int index, node_t** node_rnn)
 {
     node_t* curr = head;
     if (!has_rnn(curr)) {
@@ -168,15 +168,16 @@ node_t* find_rnn(node_t* head, int* path, int index)
         exit(1);
     }
 
-    if (curr->level > 1 && curr->right == NULL) {
-        return curr;
+    if (curr->level == curr->lrnn_lvl && curr->right == NULL) {
+        path[index] = 1;
+        *node_rnn = curr;
     } else if (curr->left->rnn > 0) {
-        find_rnn(curr->left, path, index + 1);
-
+        path[index] = 0;
+        find_rnn(curr->left, path, index + 1, node_rnn);
     } else if (curr->right->rnn > 0) {
-        find_rnn(curr->right, path, index + 1);
+        path[index] = 1;
+        find_rnn(curr->right, path, index + 1, node_rnn);
     }
-    return NULL;
 }
 
 char* concat_hash(char* hash1, char* hash2)
@@ -261,7 +262,7 @@ int find_branch_rnn(int head_lvl)
 void new_branch(node_t* right_head, node_t* new_leaf, int depth, int rnn)
 {
     node_t* prev = right_head;
-    fill_node(prev, depth, 1, rnn, rnn);
+    fill_node(prev, depth, 1, rnn, 2);
 
     if (depth > 1) {
         node_t* curr = (node_t*) malloc(sizeof(node_t));
@@ -318,9 +319,12 @@ node_t* add_leaf(node_t* head, node_t* new_leaf) // returns the head
         printf("node rnl leaf hash= %s\n", node_rnl->right->hash);
         rnl_rehash(head, node_rnl, path);
     } else if (has_rnn(head)) {
-        // node_t* node_rnn = find_rnn(head, path, 0); 
-        // rnn_add_left_leaf(head, new_leaf, path);
-        // rnn_rehash(head, node_rnn, path);
+        printf("hello mate\n");
+        node_t* node_rnn;
+        find_rnn(head, path, 0, &node_rnn); 
+        printf("Node rnn level: %d\n", node_rnn->level);
+        // new_branch(node_rnn, new_leaf, node_rnn->level, find_branch_rnn(node_rnn->level));
+        // new_branch_rehash(head, new_leaf);
     } else {
         node_t* right_head = (node_t*) malloc(sizeof(node_t));
         new_branch(right_head, new_leaf, head->level, find_branch_rnn(head->level));
