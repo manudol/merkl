@@ -11,7 +11,7 @@ typedef struct node {
     bool is_leaf;
     int rnn; // Right Null Nodes 
     int lrnn_lvl; // lowest rnn level connected
-    int rnl; // Right Null Leaves
+    bool rnl; // Right Null Leaves
     int level; // leaf level == 0
     char* hash;
     struct node* left;
@@ -86,7 +86,7 @@ node_t* new_leaf(char*id, char* dna_chunk)
     leaf->is_leaf = true;
     leaf->rnn     = 0;
     leaf->lrnn_lvl= 0;
-    leaf->rnl     = 0;
+    leaf->rnl     = false;
     leaf->hash    = hash;
     leaf->left    = NULL;
     leaf->right   = NULL;
@@ -94,14 +94,36 @@ node_t* new_leaf(char*id, char* dna_chunk)
 }
 
 
-node_t* fill_node(node_t* node, int depth, int rnl, int rnn, int lrnn_lvl)
+void update_branch(node_t* node, node_t* new_leaf, int* path, int lrnn_lvl, bool ignore_path)
 {
-    node->level   = depth;
-    node->is_leaf = false;
-    node->rnn     = rnn;
-    node->lrnn_lvl= lrnn_lvl;
-    node->rnl     = rnl;
-    return node;
+    node_t* prev;
+    node_t* curr = node;
+
+    int i = 0;
+
+    while (curr != new_leaf) {
+        prev = curr;
+        if (ignore_path) {
+            curr = curr->left;
+        } else {
+            if (path[i] == 0) {
+                curr = curr->left;
+            } else if (path[i] == 1) {
+                curr = curr->right;
+            }
+        }
+        i++;
+    }
+
+    prev->level   = curr->level + 1;
+    prev->is_leaf = false;
+    prev->rnn     = lrnn_lvl > 0;
+    prev->lrnn_lvl= lrnn_lvl;
+    prev->rnl     = true;
+    
+    if (node != prev) {
+        update_branch(node, prev, path, lrnn_lvl, ignore_path);
+    }
 }
 
 node_t* init_tree(node_t* new_leaf)
@@ -113,8 +135,8 @@ node_t* init_tree(node_t* new_leaf)
     head->level   = 1;
     head->is_leaf = false;
     head->rnn     = 0;
-    head->lrnn_lvl= 1;
-    head->rnl     = 1;
+    head->lrnn_lvl= 0;
+    head->rnl     = true;
     head->hash    = hash;
     head->left    = new_leaf;
     head->right   = NULL;
@@ -151,10 +173,10 @@ void find_rnl(node_t* head, int* path, int index, node_t** node_rnl)
     if (curr->level == 1 && curr->right == NULL) {
         path[index] = 1;
         *node_rnl = curr;
-    } else if (curr->left->rnl > 0) {
+    } else if (curr->left->rnl) {
         path[index] = 0;
         find_rnl(curr->left, path, index+1, node_rnl);
-    } else if (curr->right->rnl > 0) {
+    } else if (curr->right->rnl) {
         path[index] = 1;
         find_rnl(curr->right, path, index+1, node_rnl);
     } 
@@ -219,7 +241,7 @@ void rnl_rehash(node_t* head, node_t* node_rnl, int* path)
 
     int i = 0;
 
-    curr->rnl = 0;
+    stop->rnl = false;
 
     while (curr != stop) {
         if (path[i] == 0) {
@@ -265,7 +287,6 @@ int find_branch_rnn(int head_lvl)
 void new_branch_rnn(node_t* rn_node, node_t* new_leaf, int depth, int rnn, int start, int* path, int* index)
 {
     node_t* prev = rn_node;
-    fill_node(prev, depth, 1, rnn, 2);
 
     if (depth > 1) {
         node_t* curr = (node_t*) malloc(sizeof(node_t));
@@ -296,7 +317,6 @@ void new_branch_rnn(node_t* rn_node, node_t* new_leaf, int depth, int rnn, int s
 void new_branch(node_t* right_head, node_t* new_leaf, int depth, int rnn)
 {
     node_t* prev = right_head;
-    fill_node(prev, depth, 1, rnn, 2);
 
     if (depth > 1) {
         node_t* curr = (node_t*) malloc(sizeof(node_t));
@@ -384,13 +404,25 @@ node_t* add_leaf(node_t* head, node_t* new_leaf) // returns the head
         node_t* node_rnn;
         int index = 0;
         find_rnn(head, path, &index, &node_rnn); 
+        int lrnn_lvl = node_rnn->level;
+        if (lrnn_lvl == head->level - 1) {
+            lrnn_lvl = 0;
+        } else if (lrnn_lvl < head->level - 1) {
+            lrnn_lvl = lrnn_lvl + 1;
+        }
         new_branch_rnn(node_rnn, new_leaf, node_rnn->level, find_branch_rnn(node_rnn->level), node_rnn->level, path, &index);
         new_branch_rehash_rnn(head, new_leaf, path);
+        update_branch(head, new_leaf, path, lrnn_lvl, false);
     } else {
         printf("new_branch\n"); 
         node_t* right_head = (node_t*) malloc(sizeof(node_t));
         new_branch(right_head, new_leaf, head->level, find_branch_rnn(head->level));
         new_branch_rehash(right_head, new_leaf);
+        int lrnn_lvl = 2;
+        if (head->level == 1) {
+            lrnn_lvl = 0;
+        }
+        update_branch(right_head, new_leaf, path, lrnn_lvl, true);
         h = new_head(head, right_head);
     }
     free(path);

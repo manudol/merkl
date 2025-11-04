@@ -31,6 +31,15 @@ int main()
     char* id6 = "id2874234377";
     char* chunk6 =  "UUUAAAACCCUUUUUCCCCCCATCAGTCAGGAAAAAAAAA";
 
+    char* id7 = "id2874234377";
+    char* chunk7 =  "UUUAAAACCCUUUUUCCCCCCATCAGTCAGGAAAAAAAAA";
+
+    char* id8 = "id2874234377";
+    char* chunk8 =  "UUUAAAACCCUUUUUCCCCCCATCAGTCAGGAAAAAAAAA";
+
+    char* id9 = "id2874234377";
+    char* chunk9 =  "UUUAAAACCCUUUUUCCCCCCATCAGTCAGGAAAAAAAAA";
+
     printf("\n======= tree 1 =======\n");
 
     node_t* leaf = new_leaf(id, chunk);
@@ -140,6 +149,42 @@ int main()
     printf("head hash = %s\n", head->hash);
     printf("assert(%p == %p)\n", leaf6, head->right->right->left);
     printf("leaf hash = %s\n", head->right->right->left->hash);
+    printf("RNL = %d\n", head->rnl);
+    printf("RNN = %d\n", head->rnn);
+    printf("LVL= %d\n", head->level);
+    printf("LRN LVL= %d\n", head->lrnn_lvl);
+    
+    printf("\n======= tree 8  =======\n");
+    node_t* leaf7 = new_leaf(id7, chunk7);
+    head = add_leaf(head, leaf7);
+
+    printf("head hash = %s\n", head->hash);
+    printf("assert(%p == %p)\n", leaf7, head->right->right->left);
+    printf("leaf hash = %s\n", head->right->right->left->hash);
+    printf("RNL = %d\n", head->rnl);
+    printf("RNN = %d\n", head->rnn);
+    printf("LVL= %d\n", head->level);
+    printf("LRN LVL= %d\n", head->lrnn_lvl);
+    
+    printf("\n======= tree 9  =======\n");
+    node_t* leaf8 = new_leaf(id8, chunk8);
+    head = add_leaf(head, leaf8);
+
+    printf("head hash = %s\n", head->hash);
+    printf("RNL = %d\n", head->rnl);
+    printf("RNN = %d\n", head->rnn);
+    printf("LVL= %d\n", head->level);
+    printf("LRN LVL= %d\n", head->lrnn_lvl);
+    
+    printf("\n======= tree 10  =======\n");
+    node_t* leaf9 = new_leaf(id9, chunk9);
+    head = add_leaf(head, leaf9);
+
+    printf("head hash = %s\n", head->hash);
+    printf("RNL = %d\n", head->rnl);
+    printf("RNN = %d\n", head->rnn);
+    printf("LVL= %d\n", head->level);
+    printf("LRN LVL= %d\n", head->lrnn_lvl);
     
     free_tree(head);
     return 0;
