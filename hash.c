@@ -1,6 +1,8 @@
 #include <openssl/evp.h>
 #include <string.h>
 
+#include "hash.h"
+
 char* sha256(unsigned char const* dna_chunk)
 {
     if (dna_chunk == NULL) {

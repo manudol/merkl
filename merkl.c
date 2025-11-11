@@ -5,16 +5,16 @@
 #include <stdbool.h>
 
 #include "merkl.h"
-#include "hash.c"
+#include "data.h"
+#include "hash.h"
 
 
-
-node_t* new_leaf(char*id, char* dna_chunk)
+node_t* new_leaf(char* id, char* seq)
 {
-    char* hash = sha256((unsigned char const*)dna_chunk);
+    char* data = serialize_data(id, seq);
+    char* hash = sha256((const unsigned char*)data);
     node_t* leaf  = (node_t*) malloc(sizeof(node_t));
-    leaf->id      = id;
-    leaf->seq     = dna_chunk;
+    leaf->data    = data;
     leaf->level   = 0;
     leaf->is_leaf = true;
     leaf->rnn     = 0;
@@ -63,8 +63,7 @@ node_t* init_tree(node_t* new_leaf)
 {
     char* hash = sha256((unsigned char const*)new_leaf->hash);
     node_t* head = (node_t*) malloc(sizeof(node_t));
-    head->id      = NULL;
-    head->seq     = NULL;
+    head->data    = NULL;
     head->level   = 1;
     head->is_leaf = false;
     head->rnn     = 0;
@@ -404,11 +403,6 @@ int count_chars()
     return characters;
 }
 
-
-bool is_square(unsigned int n)
-{
-    return (n & (n - 1)) == 0; 
-}
 
 
 

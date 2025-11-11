@@ -1,2 +1,5 @@
 outmerkle
 build/
+build.sh
+test.c
+

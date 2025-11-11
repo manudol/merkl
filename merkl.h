@@ -6,8 +6,7 @@
 int count_chars();
 
 typedef struct node {
-    char* id;
-    char* seq;
+    char* data;
     bool is_leaf;
     int rnn; // Right Null Nodes 
     int lrnn_lvl; // lowest rnn level connected
@@ -19,6 +18,7 @@ typedef struct node {
 } node_t;
 
 char* sha256(unsigned char const* dna_chunk);
+char* concat_hash(char* hash1, char* hash2);
 
 node_t* new_leaf(char* id, char* dna_chunk);
 

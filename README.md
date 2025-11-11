@@ -1,3 +1,5 @@
-# Merkl
+# Merkl | A dynanmic merkle tree builder
 
-Generates Merkle trees of DNA sequences (for the moment)
+The current state 
+
+
