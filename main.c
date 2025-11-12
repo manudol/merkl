@@ -41,14 +41,15 @@ node_t* leaf_dynamic();
 
 int main()
 {
-    node_t* h = leaf_static();
     node_t* h1 = leaf_dynamic();
-
-    printf("static = %s\n", h->hash);
     printf("dynamic = %s\n", h1->hash);
-
-    free_tree(h);
     free_tree(h1);
+
+    node_t* h = leaf_static();
+    printf("static = %s\n", h->hash);
+    printf("static right right right data = %s\n", h->right->right->right->data);
+    free_tree(h);
+    
     return 0;
 }
 
@@ -84,16 +85,24 @@ node_t* leaf_dynamic()
 
 node_t* leaf_static()
 {
-    char* id[] = {id1, id2, id3, id4, id5, id6, id7, id8};
-    char* chunks[] = {chunk1, chunk2, chunk3, chunk4, chunk5, chunk6, chunk7, chunk8};
-    int n_leaves = 8;
-    char* serialized[n_leaves]; 
-    for (int i = 0; i < n_leaves; i++) {
+    // char* id[] = {id1, id2, id3, id4, id5, id6, id7, id8};
+    // char* chunks[] = {chunk1, chunk2, chunk3, chunk4, chunk5, chunk6, chunk7, chunk8};
+    char* id[] = {id1, id2, id3, id4, id5, id6, id7};
+    char* chunks[] = {chunk1, chunk2, chunk3, chunk4, chunk5, chunk6, chunk7};
+
+    int n_elements = 7;
+    int n_leaves = get_nleaves(n_elements);
+    int n_null_leaves = n_leaves - n_elements; 
+    printf("n leaves = %d\n", n_leaves);
+    printf("n null leaves = %d\n", n_null_leaves);
+
+    char* serialized[n_elements]; 
+    for (int i = 0; i < n_elements; i++) {
         serialized[i] = serialize_data(id[i], chunks[i]);
     }
     
     node_t* arr[n_leaves];
-    init_leaves_ptr_arr(n_leaves, serialized, arr);
+    init_leaves_ptr_arr(n_leaves, n_null_leaves, serialized, arr);
     node_t* head = init_static_tree(n_leaves, arr);
 
     return head;

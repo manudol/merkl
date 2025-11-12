@@ -6,6 +6,7 @@
 #include "hash.h"
 #include "merkl.h"
 #include "static_merkl.h"
+#include "data.h"
 
 bool is_base2(int n)
 {
@@ -28,8 +29,11 @@ node_t* create_leaf(char* data)
 {
     node_t* node = malloc(sizeof(node_t));
     char* hash = sha256((const unsigned char*) data);
-    
-    node->data = data;
+    if (data != NULL) { 
+        node->data = data;
+    } else {
+        node->data = data;
+    }
     node->is_leaf = true;
     node->rnn = 0;
     node->lrnn_lvl = 0;
@@ -39,10 +43,16 @@ node_t* create_leaf(char* data)
     return node;
 }
 
-void init_leaves_ptr_arr(int n_leaves,  char* str[], node_t* arr[])
+void init_leaves_ptr_arr(int n_leaves,  int null_leaves, char* str[], node_t* arr[])
 {
     for (int i = 0; i < n_leaves; i++) {
-        node_t* node = create_leaf(str[i]);
+        node_t* node;
+        if (i >= n_leaves - null_leaves) {
+            printf("NULL LEAF\n");
+            node = create_leaf(null_data());
+        } else {
+            node = create_leaf(str[i]);
+        }
         arr[i] = node;
     }
 }
